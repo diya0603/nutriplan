@@ -15,6 +15,8 @@ class User(Base):
 
     preferences = relationship("UserPreferences", back_populates="user", uselist=False)
     meal_plans = relationship("MealPlan", back_populates="user")
+    pantry_items = relationship("Pantry", back_populates="user")
+    conversations = relationship("Conversation", back_populates="user")
 
 
 class UserPreferences(Base):
@@ -35,6 +37,7 @@ class UserPreferences(Base):
     cuisine_preferences = Column(ARRAY(String), default=list)
 
     meals_per_day = Column(Integer, default=3)
+    selected_meal_types = Column(ARRAY(String), nullable=True)
     include_snacks = Column(Boolean, default=False)
     max_cooking_time_minutes = Column(Integer, default=30)
     budget_weekly_usd = Column(Float)
@@ -100,3 +103,39 @@ class MealNutrition(Base):
     fiber_g = Column(Float)
 
     meal = relationship("Meal", back_populates="nutrition")
+
+
+class Pantry(Base):
+    __tablename__ = "pantry"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    ingredient_name = Column(String, nullable=False)
+    quantity = Column(Float, nullable=True)   # null = "I have this, don't track amount"
+    unit = Column(String, nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="pantry_items")
+
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="conversations")
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
+    role = Column(String, nullable=False)  # "user" or "assistant"
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    conversation = relationship("Conversation", back_populates="messages")

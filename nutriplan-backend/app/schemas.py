@@ -43,6 +43,7 @@ class PreferencesSchema(BaseModel):
     cuisine_preferences: List[str] = []
 
     meals_per_day: int = 3
+    selected_meal_types: Optional[List[str]] = None
     include_snacks: bool = False
     max_cooking_time_minutes: int = 30
     budget_weekly_usd: Optional[float] = None
@@ -63,6 +64,7 @@ class PreferencesUpdateSchema(BaseModel):
     cuisine_preferences: Optional[List[str]] = None
 
     meals_per_day: Optional[int] = None
+    selected_meal_types: Optional[List[str]] = None
     include_snacks: Optional[bool] = None
     max_cooking_time_minutes: Optional[int] = None
     budget_weekly_usd: Optional[float] = None
@@ -127,3 +129,39 @@ class MealPlanOut(BaseModel):
 
 class GeneratePlanRequest(BaseModel):
     days: int = 7
+
+
+class PantryItemSchema(BaseModel):
+    ingredient_name: str
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PantryItemOut(BaseModel):
+    id: int
+    ingredient_name: str
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ChatRequest(BaseModel):
+    message: str
+
+
+class ChatMessageOut(BaseModel):
+    role: str
+    content: str
+
+    class Config:
+        from_attributes = True
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    action_taken: Optional[str] = None  # e.g. "swapped Monday dinner", None if just a question

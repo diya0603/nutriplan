@@ -66,7 +66,7 @@ export function getCurrentMealPlan() {
   return apiFetch("/meal-plans/current");
 }
 
-
+//------- Grocery list and Pantry---------
 export function getGroceryList() {
   return apiFetch("/meal-plans/current/grocery-list");
 }
@@ -86,4 +86,14 @@ export function getPantry() {
 
 export function deletePantryItem(id: number) {
   return apiFetch(`/pantry/${id}`, { method: "DELETE" });
+}
+
+
+//-------Chat-----
+export function sendChatMessage(message: string) {
+  return apiFetch("/chat/", { method: "POST", body: JSON.stringify({ message }) });
+}
+
+export function getChatHistory() {
+  return apiFetch("/chat/history");
 }

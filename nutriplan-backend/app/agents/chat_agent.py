@@ -50,9 +50,10 @@ class IngredientSubstitution(BaseModel):
     new_ingredient_name: str
     quantity: float
     unit: Optional[str] = None
-    updated_instructions: str = Field(
+    updated_instructions: str = Field(..., description="...")
+    updated_recipe_name: str = Field(
         ...,
-        description="The recipe instructions, with the old ingredient replaced by the new one where mentioned."
+        description="The recipe name, updated only if the old ingredient was part of the name (e.g. 'Honey Garlic Salmon' -> 'Maple Garlic Salmon'). Otherwise return the name unchanged."
     )
 
 
@@ -102,12 +103,14 @@ SWAP_PROMPT = ChatPromptTemplate.from_template("""
 You are a professional nutritionist and meal planner.
 
 The user wants a completely different {meal_type} for {day_of_week}.
+Their specific request for this swap: "{user_request}"
+If this request specifies a cuisine, style, or other preference, prioritize it over the general cuisine preference below.
 
 Their profile:
 - Goal: {goal}
 - Dietary restrictions: {restrictions}
 - Allergies: {allergies}
-- Cuisine preferences: {cuisines}
+- General cuisine preference: {cuisines}
 - Max cooking time: {max_time} minutes
 
 This new meal should have approximately {target_calories} calories, so that {day_of_week}'s total stays close to their daily target.
@@ -137,7 +140,14 @@ def answer_question(user_message: str, plan_summary: str) -> str:
     llm = _build_llm()
     prompt = QUESTION_PROMPT.format_messages(plan_summary=plan_summary, user_message=user_message)
     response = llm.invoke(prompt)
-    return response.content
+
+    content = response.content
+    if isinstance(content, list):
+        # Gemini sometimes returns a list of content blocks instead of a plain string
+        content = "".join(
+            block.get("text", "") for block in content if isinstance(block, dict)
+        )
+    return content
 
 
 def substitute_ingredient(meal: models.Meal, ingredient_name: str, preferences) -> IngredientSubstitution:
@@ -156,7 +166,7 @@ def substitute_ingredient(meal: models.Meal, ingredient_name: str, preferences) 
     return llm.invoke(prompt)
 
 
-def swap_meal(day_of_week: str, meal_type: str, preferences, current_day_total: float) -> LLMMeal:
+def swap_meal(day_of_week: str, meal_type: str, preferences, current_day_total: float, user_request: str = "") -> LLMMeal:
     calorie_target = _estimate_calorie_target(preferences)
     target_calories = max(calorie_target - current_day_total, 100)
 
@@ -170,5 +180,6 @@ def swap_meal(day_of_week: str, meal_type: str, preferences, current_day_total: 
         cuisines=", ".join(preferences.cuisine_preferences or []) or "no preference",
         max_time=preferences.max_cooking_time_minutes,
         target_calories=round(target_calories),
+        user_request=user_request or "no specific request beyond a different recipe",
     )
     return llm.invoke(prompt)

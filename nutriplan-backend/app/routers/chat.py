@@ -142,6 +142,7 @@ def chat(
                 old_ing.quantity = sub.quantity
                 old_ing.unit = sub.unit
             meal.recipe_instructions = sub.updated_instructions
+            meal.recipe_name = sub.updated_recipe_name
             changed_meals.append(f"{meal.day_of_week} {meal.meal_type}")
 
         db.commit()
@@ -174,7 +175,7 @@ def chat(
         ]
         current_day_total = sum(m.nutrition.calories for m in other_meals_that_day if m.nutrition)
 
-        new_meal = swap_meal(result.day_of_week, result.meal_type, current_user.preferences, current_day_total)
+        new_meal = swap_meal(result.day_of_week, result.meal_type, current_user.preferences, current_day_total, user_request=payload.message)
         validation = validate_single_meal(
             new_meal,
             current_user.preferences.allergies or [],

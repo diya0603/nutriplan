@@ -119,6 +119,9 @@ export default function DashboardPage() {
             >
               Edit preferences
             </Link>
+            <Link href="/chat" className="text-sm text-[#1B3A2F]/60 hover:text-[#1B3A2F]">
+            Chat
+            </Link>
             <button
               onClick={handleLogout}
               className="text-sm text-[#1B3A2F]/60 hover:text-[#1B3A2F]"

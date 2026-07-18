@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routers import auth_routes, users, preferences, meal_plans, pantry
+from app.routers import auth_routes, users, preferences, meal_plans, pantry, chat
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,6 +22,7 @@ app.include_router(users.router)
 app.include_router(preferences.router)
 app.include_router(meal_plans.router)
 app.include_router(pantry.router)
+app.include_router(chat.router)
 
 @app.get("/health")
 def health():

@@ -55,6 +55,11 @@ class IngredientSubstitution(BaseModel):
         ...,
         description="The recipe name, updated only if the old ingredient was part of the name (e.g. 'Honey Garlic Salmon' -> 'Maple Garlic Salmon'). Otherwise return the name unchanged."
     )
+    updated_calories: float = Field(..., description="The meal's total calories after this substitution.")
+    updated_protein_g: float = Field(..., description="The meal's total protein (g) after this substitution.")
+    updated_carbs_g: float = Field(..., description="The meal's total carbs (g) after this substitution.")
+    updated_fat_g: float = Field(..., description="The meal's total fat (g) after this substitution.")
+    updated_fiber_g: Optional[float] = Field(None, description="The meal's total fiber (g) after this substitution, if known.")
 
 
 def _build_llm():
@@ -91,12 +96,15 @@ The user wants to replace "{old_ingredient}" in this recipe:
 Recipe: {recipe_name}
 Current instructions: {instructions}
 Current ingredients: {ingredients}
+Current nutrition (for the whole meal): {calories} cal, {protein}g protein, {carbs}g carbs, {fat}g fat, {fiber}g fiber
 
 User's dietary restrictions: {restrictions}
 User's allergies: {allergies}
 
 Suggest a single reasonable substitute for "{old_ingredient}" that fits the recipe and respects restrictions/allergies.
 Update the instructions to reference the new ingredient wherever the old one was mentioned; otherwise leave instructions unchanged.
+Update the recipe name only if the old ingredient was part of the name; otherwise leave it unchanged.
+Recalculate the meal's total nutrition (including fiber) to reflect this one ingredient change, keeping all other ingredients' contributions the same.
 """)
 
 SWAP_PROMPT = ChatPromptTemplate.from_template("""
@@ -160,6 +168,11 @@ def substitute_ingredient(meal: models.Meal, ingredient_name: str, preferences) 
         recipe_name=meal.recipe_name,
         instructions=meal.recipe_instructions or "",
         ingredients=ingredients_text,
+        calories=meal.nutrition.calories if meal.nutrition else "unknown",
+        protein=meal.nutrition.protein_g if meal.nutrition else "unknown",
+        carbs=meal.nutrition.carbs_g if meal.nutrition else "unknown",
+        fat=meal.nutrition.fat_g if meal.nutrition else "unknown",
+        fiber=meal.nutrition.fiber_g if meal.nutrition and meal.nutrition.fiber_g is not None else "unknown",
         restrictions=", ".join(preferences.dietary_restrictions or []) or "none",
         allergies=", ".join(preferences.allergies or []) or "none",
     )

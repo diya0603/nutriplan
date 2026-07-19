@@ -1,6 +1,9 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+import logging
 
 from app.database import Base, engine
 from app.routers import auth_routes, users, preferences, meal_plans, pantry, chat
@@ -16,6 +19,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger = logging.getLogger("uvicorn.error")
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error on {request.method} {request.url.path}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Something went wrong. Please try again."},
+    )
 
 app.include_router(auth_routes.router)
 app.include_router(users.router)

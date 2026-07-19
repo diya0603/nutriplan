@@ -6,6 +6,7 @@ from app import models, schemas, auth
 from app.database import get_db
 from app.agents.meal_planner import generate_meal_plan
 from collections import defaultdict
+from app.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/meal-plans", tags=["meal-plans"])
 
@@ -22,6 +23,7 @@ def generate_plan(
             detail="Complete onboarding before generating a meal plan.",
         )
 
+    check_rate_limit(f"generate:{current_user.id}", max_requests=3, window_seconds=60)
     llm_plan = generate_meal_plan(current_user.preferences, days=payload.days)
 
     meal_plan = models.MealPlan(user_id=current_user.id, status="active")

@@ -6,6 +6,7 @@ from app import models, schemas, auth
 from app.database import get_db
 from app.agents.chat_agent import classify_intent, answer_question, substitute_ingredient, swap_meal
 from app.agents.meal_planner import validate_single_meal
+from app.rate_limit import check_rate_limit
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -67,6 +68,8 @@ def chat(
 ):
     if current_user.preferences is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Complete onboarding first")
+
+    check_rate_limit(f"chat:{current_user.id}", max_requests=10, window_seconds=60)
 
     plan = _get_active_plan(db, current_user.id)
     convo = _get_or_create_conversation(db, current_user.id)
@@ -143,7 +146,17 @@ def chat(
                 old_ing.unit = sub.unit
             meal.recipe_instructions = sub.updated_instructions
             meal.recipe_name = sub.updated_recipe_name
+
+            if meal.nutrition:
+                meal.nutrition.calories = sub.updated_calories
+                meal.nutrition.protein_g = sub.updated_protein_g
+                meal.nutrition.carbs_g = sub.updated_carbs_g
+                meal.nutrition.fat_g = sub.updated_fat_g
+                if sub.updated_fiber_g is not None:
+                    meal.nutrition.fiber_g = sub.updated_fiber_g
             changed_meals.append(f"{meal.day_of_week} {meal.meal_type}")
+
+
 
         db.commit()
         reply = f"Replaced {result.ingredient_name} with a substitute in: {', '.join(changed_meals)}."

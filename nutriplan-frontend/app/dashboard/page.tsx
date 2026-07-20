@@ -73,7 +73,7 @@ export default function DashboardPage() {
     setGenerating(true);
     setError(null);
     try {
-      const data = await generateMealPlan(2); // TODO: bump to 7 before demo
+      const data = await generateMealPlan(7); // TODO: bump to 7 before demo
       setPlan(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate plan");

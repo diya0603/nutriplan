@@ -13,8 +13,16 @@ async function apiFetch(path: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
-    const errorBody = await res.json().catch(() => ({}));
-    throw new Error(errorBody.detail || `Request failed: ${res.status}`);
+  const errorBody = await res.json().catch(() => ({}));
+  let message = `Request failed: ${res.status}`;
+
+    if (typeof errorBody.detail === "string") {
+      message = errorBody.detail;
+    } else if (Array.isArray(errorBody.detail) && errorBody.detail.length > 0) {
+      message = errorBody.detail.map((e: any) => e.msg).join(", ");
+    }
+
+    throw new Error(message);
   }
 
   if (res.status === 204) {

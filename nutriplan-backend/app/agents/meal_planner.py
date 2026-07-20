@@ -124,6 +124,7 @@ Generate a {days}-day meal plan for a user with this profile:
 - Weekly budget: ${budget}
 
 Rules:
+- You must generate exactly {days} day(s) of meals, no more, no fewer. Double check the number of days before finalizing.
 - Each day must contain exactly these meal types, no more, no fewer: {meal_types}
 - Respect all dietary restrictions and allergies strictly, this is critical.
 - Each day's meals must sum to within 10% of {calorie_target} calories total. Double check your math before finalizing.
@@ -170,12 +171,17 @@ def validate_meal_plan(
     allergies: List[str],
     restrictions: List[str],
     expected_meal_types: List[str],
+    expected_days: int,
 ) -> ValidationResult:
     issues = []
     allergies_lower = [a.strip().lower() for a in allergies if a.strip()]
     restrictions_lower = [r.strip().lower() for r in restrictions if r.strip()]
     expected_set = set(expected_meal_types)
 
+    if len(plan.days) != expected_days:
+        issues.append(
+            f"Expected {expected_days} day(s) in the plan, but got {len(plan.days)}."
+        )
     for day in plan.days:
         daily_total = sum(meal.nutrition.calories for meal in day.meals)
         lower_bound = calorie_target * 0.9
@@ -244,7 +250,7 @@ def generate_meal_plan(preferences, days: int = 7, max_retries: int = 2) -> LLMM
 
     for attempt in range(max_retries + 1):
         plan = agent.invoke(messages)
-        result = validate_meal_plan(plan, calorie_target, allergies, restrictions, meal_types)
+        result = validate_meal_plan(plan, calorie_target, allergies, restrictions, meal_types, days)
 
         if result.passed:
             return plan
